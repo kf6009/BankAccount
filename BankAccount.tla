@@ -3,59 +3,22 @@ EXTENDS Integers
 
 (* Pluscal model follows:
 --algorithm BankAccount
-  variable balance = 100
+  variable balance = 100;    \* Global, with initial value
 
   process Withdraw \in 1..2
-    variable current = 0
+    variable current = 0;    (* Local variable: note how this translate into a 
+                                function mapping process id to the value
+                             *)
     begin
-    s1: current := balance;
-    s2: current := current - 10;
-    s3: balance := current
+    s1: current := balance;      \* Step one, note how it translates to an action
+    s2: current := current - 10; \* Second step, has to be another step to update current
+    s3: balance := current       \* Third step 
   end process
 end algorithm
 *)
-\* BEGIN TRANSLATION
-VARIABLES balance, pc, current
-
-vars == << balance, pc, current >>
-
-ProcSet == (1..2)
-
-Init == (* Global variables *)
-        /\ balance = 100
-        (* Process Withdraw *)
-        /\ current = [self \in 1..2 |-> 0]
-        /\ pc = [self \in ProcSet |-> "s1"]
-
-s1(self) == /\ pc[self] = "s1"
-            /\ current' = [current EXCEPT ![self] = balance]
-            /\ pc' = [pc EXCEPT ![self] = "s2"]
-            /\ UNCHANGED balance
-
-s2(self) == /\ pc[self] = "s2"
-            /\ current' = [current EXCEPT ![self] = current[self] - 10]
-            /\ pc' = [pc EXCEPT ![self] = "s3"]
-            /\ UNCHANGED balance
-
-s3(self) == /\ pc[self] = "s3"
-            /\ balance' = current[self]
-            /\ pc' = [pc EXCEPT ![self] = "Done"]
-            /\ UNCHANGED current
-
-Withdraw(self) == s1(self) \/ s2(self) \/ s3(self)
-
-Next == (\E self \in 1..2: Withdraw(self))
-           \/ (* Disjunct to prevent deadlock on termination *)
-              ((\A self \in ProcSet: pc[self] = "Done") /\ UNCHANGED vars)
-
-Spec == Init /\ [][Next]_vars
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-
-\* END TRANSLATION
-
 
 =============================================================================
 \* Modification History
+\* Last modified Mon Oct 21 21:04:10 BST 2019 by alun
 \* Last modified Wed Oct 09 13:51:02 BST 2019 by cgam1
 \* Created Wed Oct 09 13:49:19 BST 2019 by cgam1
